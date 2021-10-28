@@ -1,27 +1,28 @@
-#!/usr/bin/python
+def make_sector_master(makeit_list):
 
-# Master program for Traveller universe build
-# Should run first_in_generationn, mainworld_calulator, mainworld_selector, travellerization
-import random
-
-def get_seed():
-    seed_input = input ('What random seed should I use?  ')
-    return seed_input
+    # Master program for Traveller universe build
     
-def set_seed(seed_number):
-    random.seed(seed_number)
-    print ('Setting seed: ', seed_number)
-    stall = input ('Hit Enter')
+    import random
+    from first_in_generation import generate_stars
+    from mainworld_calculator import generate_mainworld_scores
+    from mainworld_selector import choose_mainworld
+    from travellerization import add_traveller_stats
+    from traveller_map import build_travellermap_file
+    from non_mw import generate_non_mainworlds
+    from far_trader import generate_far_trader_stats
+    from journey_data import build_journey_table
     
-seed_number = get_seed()
-set_seed(seed_number)
-
-import first_in_generation
-import mainworld_calculator
-import mainworld_selector
-import travellerization
-import traveller_map
-import non_mw
-import far_trader
-
-
+    seed_number = makeit_list[0]
+    
+    print('v0.3 Stellar Companion Update')
+    db_name = 'sector_db/' + makeit_list[1] + '.db'
+    generate_stars(db_name,makeit_list)
+    generate_mainworld_scores(db_name)
+    choose_mainworld(db_name)
+    add_traveller_stats(seed_number,db_name)
+    build_travellermap_file(db_name)
+    generate_non_mainworlds(seed_number,db_name)
+    generate_far_trader_stats(seed_number,db_name)
+    print('Calling the journey table')
+    build_journey_table(seed_number,db_name)
+    print('Process Complete')

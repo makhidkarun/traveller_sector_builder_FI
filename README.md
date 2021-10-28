@@ -1,12 +1,60 @@
-# traveller-sector_builder_FI
-Build a SQLite database of Traveller systems using First In and T5 hybrid rules
+ traveller-universe-creator
+v.05
+2021-10-28
 
-Running traveller_master.py will produce:
+ Sector Generation
+ by Sean Nelson
 
-- A text file of a full sector of mainworlds that can be loaded into travellermap.com for a custom booklet or poster
-- A complete SQLite database of statted worlds for a sector including:
-	- tb_stellar, tb_secondary, and tb_tertiary for star stats
-	- tb_t5 for T5 stats of each mainworld
-	- tb_non_mainworld for T5 stats for each non-mainworld
-	- tb_orbital_bodies for First In stats for each orbital body
-	- tb_far_trader for WTN, GWP, and exchange rate for each mainworld
+ The goal is to generate a sector of Traveller star systems
+
+
+ Possible Improvements Pending:
+
+   - Rewrite Stellar creation rules using  Architect of Worlds
+   - Create worlds using Architect of Worlds
+   - Expand moon data 
+   - Build a GUI for browsing data
+   - Export data to a PDF for publishing
+
+To Do list complete:
+
+   - COMPLETE 2021 10 28: Moons created using Architect of Worlds
+   - COMPLETE 2021 10 27: Density added for GG
+   - COMPLETE 2021 10 26: Orbital Bodies around all stellar objects
+   - COMPLETE 2021 10 26: Incorporate Forbidden Zones for planet orbits
+   - COMPLETE 2021 10 25: Very Close Binaries combine stellar info for orbit creation
+   - COMPLETE 2021 10 25: Distant stellar bodies added
+   - COMPLETE: Add Stellar Age
+   - COMPLETE: Appropriate Planet Size modifiers
+   - COMPLETE: Stellar data loaded in a database. 
+   - COMPLETE: White Dwarf details and orbital bodies
+   - COMPLETE: Rolls are added to a table with relevant data
+   - FIXED: Minimum 25 size for GG    
+
+
+Description:
+
+This program builds a traveller sector and stores the data in two forms:
+-SQLite database
+-Text file for import into the TravellerMap website
+
+
+FAQ:
+Q:  What does the program do?
+
+A:  After setting the parameters you want, it produces a traveller sector and provides the information in two separate files. 
+The first file is a txt file that matches the T5 format for the TravellerMap website.  The information can be cut and pasted and placed directly into that site's custom map option.
+
+The second file is a database file (using SQLite DB) that houses information for every star and planet in the sector.  It includes UWPs for mainworld and non-mainworlds.
+You can browse and search this database using the excellent SQLite browser from: https://sqlitebrowser.org/
+
+Q:  What Traveller rules does it use?
+
+A:  It uses GURPS First In for the science stuff (like stellar details, and planet temperature) and T5 rules for the Traveller stuff (like law level and influence scores)
+
+Q:  How do you run it?
+
+A:  Run the TUC_menu.py from your python environment
+
+
+
