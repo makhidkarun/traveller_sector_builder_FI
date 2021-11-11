@@ -15,6 +15,16 @@ def generate_non_mainworlds(seed_number,db_name):
     import random
     random.seed(seed_number)
     
+    
+    def get_system_name(name_list):
+        names_left = len(name_list)
+        name_picked = name_list[random.randrange(0,names_left)]
+        name_fixed = name_picked.rstrip('\n')
+        name_list.remove(name_picked)
+        return name_fixed
+    
+    
+    
     def roll_dice(no_dice, why, location):
         no_dice_loop = no_dice + 1  #increment by one for the FOR loop
         sum_dice = 0
@@ -69,7 +79,7 @@ def generate_non_mainworlds(seed_number,db_name):
                                                         tech_level INTEGER,
                                                         uwp TEXT);"""
                                                         
-        c.execute('DROP TABLE IF EXISTS exo_word')
+        c.execute('DROP TABLE IF EXISTS exo_worlds')
         c.execute(sql_create_tb_non_mw_table)  
         
     def get_population(location,mw_dict):
@@ -77,14 +87,21 @@ def generate_non_mainworlds(seed_number,db_name):
     
         if dice > mw_dict[location]['population']:
             dice = mw_dict[location]['population'] - 1
+        
+        if dice < 0: dice = 0
         return dice    
             
     def get_spaceport(location,population):
-        dice = roll_dice(1,'Spaceport',location) - population
-        if dice >= 4: spaceport = 'F'
-        elif dice == 3: spaceport = 'G'
-        elif 1 <= dice <=2 : spaceport = 'H'
-        else: spaceport = 'Y'
+        
+        if population == 0:
+            spaceport = 'Y'
+        else:
+            dice = roll_dice(1,'Spaceport',location) - population
+            if dice >= 4: spaceport = 'F'
+            elif dice == 3: spaceport = 'G'
+            elif 1 <= dice <=2 : spaceport = 'H'
+            else: spaceport = 'Y'
+        
         
         return spaceport
         
@@ -94,7 +111,7 @@ def generate_non_mainworlds(seed_number,db_name):
         elif pressure == 0.1: c_atmosphere = 1
         elif composition == 'Exotic': c_atmosphere = 10
         elif composition == 'Corrosive': c_atmosphere = 11
-        elif composition == 'GG': c_atmosphere = 1 #need a function to get GG moon data
+        elif composition == 'GG': c_atmosphere = 1 
         elif composition == 'Standard':
             if pressure < 0.5: c_atmosphere = 3 
             elif pressure < 0.8: c_atmosphere = 5
@@ -110,17 +127,7 @@ def generate_non_mainworlds(seed_number,db_name):
         
         return c_atmosphere
         
-    def get_hydrographics(body, hydro):
-        c_hydro = -1
-        if body == 'Gas Giant': c_hydro = 1 # add a function to get a GG moon data
-        else: c_hydro = hydro
-        return c_hydro
-        
-    def get_size(body, size):
-        c_size = -1
-        if body == 'Gas Giant': c_size = '1' # add a function to get a GG moon data
-        else: c_size = size
-        return c_size
+       
     
     def get_government(location, population, mw_government):
         if mw_government == '6':
@@ -190,31 +197,56 @@ def generate_non_mainworlds(seed_number,db_name):
             
     
     # MAIN PROGRAM
+    
+    name_list = open("names.csv", "r").readlines()
         
     conn = sqlite3.connect(db_name)
     c = conn.cursor()
     create_tb_non_mw_table()
     mw_dict = capture_mainworld_stats()
     
-    
-    sql3_select_locorb = """        SELECT  location_orbit,location,atmos_pressure,atmos_composition, 
-                                            body, hydrographics, size 
-                                    FROM    orbital_bodies 
-                                    WHERE   mainworld_status != 'Y' """
-    
-    c.execute(sql3_select_locorb)
-    allrows = c.fetchall()
+    try:
+        sql3_select_locorb = """        SELECT  m.location_orbit,
+                                                m.location,
+                                                o.atmos_pressure,
+                                                o.atmos_composition, 
+                                                o.body, 
+                                                o.hydrographics, 
+                                                o.size 
+                                        FROM    main_world_eval m
+                                        LEFT JOIN orbital_bodies o
+                                        ON o.location_orbit = m.location_orbit
+                                        WHERE   mainworld_status != 'Y' """
+        
+        c.execute(sql3_select_locorb)
+        allrows = c.fetchall()
+    except: 
+        print('problem with selecting from main_world_eval and orbital bodies')
     
     for row in allrows:
 #        print (row[0])
-        population = get_population(row[1],mw_dict)
-        spaceport = get_spaceport(row[0],population)
-        atmosphere = get_atmosphere(row[2],row[3])
-        hydrographics = get_hydrographics(row[4],row[5])
-        size = get_size(row[4],row[6])
-        government = get_government(row[1], population,mw_dict[row[1]]['government'])    
-        law_level = get_law_level(row[1], government)
-        tech_level = get_tech_level(row[1], spaceport, size, atmosphere, hydrographics, population, government)
+        
+        if row[4] != "Gas Giant":
+
+            population = get_population(row[1],mw_dict)
+            spaceport = get_spaceport(row[0],population)
+            atmosphere = get_atmosphere(row[2],row[3])
+            hydrographics = row[5]
+            size = row[6]
+            government = get_government(row[1], population,mw_dict[row[1]]['government'])    
+            law_level = get_law_level(row[1], government)
+            tech_level = get_tech_level(row[1], spaceport, size, atmosphere, hydrographics, population, government)
+        
+        else:
+            population = 0
+            spaceport = 'Y'
+            atmosphere = 15
+            hydrographics = 0
+            size = row[6]
+            government = 0
+            law_level = 0
+            tech_level = 0
+            
 
         uwp = (spaceport + tohex(int(size))\
                + tohex(int(atmosphere)) \
@@ -223,10 +255,50 @@ def generate_non_mainworlds(seed_number,db_name):
                + tohex(int(government)) \
                + tohex(int(law_level)) \
                + '-'
-               + tohex(int(tech_level)))
-        sqlcommand = '''    INSERT INTO exo_worlds ( location_orb, 
+               + tohex(int(tech_level)))            
+            
+        main_world = 0
+        
+        # sqlcommand = '''    INSERT INTO exo_worlds ( location_orb, 
+        #                                             location, 
+        #                                             spaceport, 
+        #                                             size,
+        #                                             atmosphere, 
+        #                                             hydrographics, 
+        #                                             population, 
+        #                                             government,
+        #                                             law,
+        #                                             tech_level,
+        #                                             uwp)                                            
+        #                                             VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) '''
+    
+                            
+        # body_row =          (str(row[0]),
+        #                     str(row[1]),
+        #                     spaceport,
+        #                     size,
+        #                     atmosphere,
+        #                     hydrographics,
+        #                     population,
+        #                     government,
+        #                     law_level,
+        #                     tech_level,
+        #                     uwp)
+                        
+      
+        # c.execute(sqlcommand, body_row) 
+    
+    
+##################################################################################################    
+#  This code will replace above.
+#  Instead of a new table, add to traveller_stats
+
+        system_name = get_system_name(name_list)
+    
+        sqlcommand = '''    INSERT INTO traveller_stats(location_orb, 
                                                     location, 
-                                                    spaceport, 
+                                                    system_name,
+                                                    starport, 
                                                     size,
                                                     atmosphere, 
                                                     hydrographics, 
@@ -234,12 +306,13 @@ def generate_non_mainworlds(seed_number,db_name):
                                                     government,
                                                     law,
                                                     tech_level,
-                                                    uwp)                                            
-                                                    VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) '''
+                                                    main_world)                                            
+                                                    VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) '''
     
                             
         body_row =          (str(row[0]),
                             str(row[1]),
+                            system_name,
                             spaceport,
                             size,
                             atmosphere,
@@ -248,16 +321,10 @@ def generate_non_mainworlds(seed_number,db_name):
                             government,
                             law_level,
                             tech_level,
-                            uwp)
+                            main_world)
                         
       
-        c.execute(sqlcommand, body_row) 
-    
-    
-    
-    
-    
-    
+        c.execute(sqlcommand, body_row)     
     
     
     conn.commit()

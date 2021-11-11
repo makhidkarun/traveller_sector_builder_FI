@@ -22,6 +22,8 @@ def add_traveller_stats(seed_number,db_name):
     
     import sqlite3
     import random
+    import traceback
+    import sys
     random.seed(seed_number)
     
     def capture_primary_stats():
@@ -64,7 +66,7 @@ def add_traveller_stats(seed_number,db_name):
         sql3_select_t_stars = """  SELECT   location, 
                                             luminosity_class, 
                                             spectral_type
-                                    FROM    stellar_bodies WHERE companion_class = '2' """
+                                    FROM    stellar_bodies WHERE companion_class = '2' OR companion_class = '1.1' """
                                     
         c.execute(sql3_select_t_stars)
         allrows = c.fetchall()
@@ -132,6 +134,48 @@ def add_traveller_stats(seed_number,db_name):
                                                     );"""
         c.execute('DROP TABLE IF EXISTS main_worlds')
         c.execute(sql_create_tb_t5_table)  
+        
+        
+        sql_create_system_stats_table = """CREATE TABLE system_stats( 
+                                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                                            location TEXT,
+                                            remarks TEXT,
+                                            ix TEXT,
+                                            ex TEXT,
+                                            cx TEXT,
+                                            n TEXT,
+                                            bases TEXT,
+                                            zone TEXT,
+                                            pbg TEXT,
+                                            w TEXT,
+                                            allegiance TEXT,
+                                            stars TEXT
+                                            );"""
+        c.execute('DROP TABLE IF EXISTS system_stats')
+        c.execute(sql_create_system_stats_table) 
+        
+        
+        
+        sql_create_traveller_stats_table = """CREATE TABLE traveller_stats( 
+                                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                                            location_orb TEXT,
+                                            location TEXT,
+                                            system_name TEXT,
+                                            starport TEXT,
+                                            size INTEGER,
+                                            atmosphere INTEGER,
+                                            hydrographics INTEGER,
+                                            population INTEGER,
+                                            government INTEGER,
+                                            law INTEGER,
+                                            tech_level INTEGER,
+                                            main_world INTEGER
+                                            
+                                            
+                                            );"""
+        c.execute('DROP TABLE IF EXISTS traveller_stats')
+        c.execute(sql_create_traveller_stats_table)
+        
         
         
     def get_system_name(name_list):
@@ -587,18 +631,34 @@ def add_traveller_stats(seed_number,db_name):
     
     sector_population = 0
     
+    try:
     
-    sql3_select_locorb = """        SELECT  location_orbit, location, atmos_pressure,atmos_composition, \
-                                            body, hydrographics, size
-                                    FROM    orbital_bodies 
-                                    WHERE   mainworld_status = 'Y' """
+        sql3_select_locorb = """        SELECT  m.location_orbit, 
+                                                m.location, 
+                                                o.atmos_pressure,
+                                                o.atmos_composition, 
+                                                o.body, 
+                                                o.hydrographics, 
+                                                o.size
+                                        FROM main_world_eval m
+                                        LEFT JOIN orbital_bodies o
+                                        ON m.location_orbit = o.location_orbit
+                                        WHERE   m.mainworld_status = 'Y' """
+
+        c.execute(sql3_select_locorb)
+        allrows = c.fetchall()
     
-    c.execute(sql3_select_locorb)
-    allrows = c.fetchall()
+    
+    except:
+        print('Houston - travellerization reading problem')
+        print('SQLite traceback: ')
+        exc_type, exc_value, exc_tb = sys.exc_info()
+        print(traceback.format_exception(exc_type, exc_value, exc_tb))
+
     
     for row in allrows:
 #        print (row[0])
-#        system_name = 'Name'
+
         system_name = get_system_name(name_list)
 #        print(system_name)
         population = get_population(row[0])
@@ -645,7 +705,7 @@ def add_traveller_stats(seed_number,db_name):
         n_list = get_noble(remarks, ix)
         n = ''.join(n_list)
         stars = get_stars(row[1],p_stars_dict,c_stars_dict, t_stars_dict)
-        
+        main_world = 1
     
     
         
@@ -704,8 +764,78 @@ def add_traveller_stats(seed_number,db_name):
                             
         
         c.execute(sqlcommand, body_row) 
+        
+##############################################################################################
+# These tables will replace the above
+# Traveler stats will have mainworlds and non-mainworlds 
+# System stats are for stats common for the entire system        
+        
+        sqlcommand = '''    INSERT INTO traveller_stats(location_orb, 
+                                        location, 
+                                        system_name,
+                                        starport, 
+                                        size,
+                                        atmosphere, 
+                                        hydrographics, 
+                                        population, 
+                                        government,
+                                        law,
+                                        tech_level,
+                                        main_world)                                            
+                                        VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) '''
+                            
+        body_row =          (str(row[0]),
+                            str(row[1]),
+                            system_name,
+                            starport,
+                            size,
+                            atmosphere,
+                            hydrographics,
+                            population,
+                            government,
+                            law_level,
+                            tech_level,
+                            main_world)
+                        
     
+                            
+        
+        c.execute(sqlcommand, body_row) 
     
+        sqlcommand = '''    INSERT INTO system_stats(
+                                        location, 
+                                        bases,
+                                        pbg,
+                                        remarks,
+                                        ix,
+                                        ex,
+                                        cx,
+                                        zone,
+                                        n,
+                                        allegiance,
+                                        w,
+                                        stars)                                            
+                                        VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) '''
+                                        
+                                        
+                            
+        body_row =          (str(row[1]),
+                            bases,
+                            pbg,
+                            str_remarks,
+                            str_ix,
+                            ex,
+                            cx,
+                            zone,
+                            n,
+                            allegiance,
+                            w,
+                            stars)
+                        
+    
+                            
+        
+        c.execute(sqlcommand, body_row) 
     
     
     
