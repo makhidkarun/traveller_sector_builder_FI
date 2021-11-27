@@ -1,4 +1,4 @@
-def build_travellermap_file(db_name):
+def build_travellermap_file(db_name,sector_name):
 
 
 # Traveller Map
@@ -121,11 +121,12 @@ def build_travellermap_file(db_name):
     ### Produce a column-specific file for use with PyMapGen
 
     trav_filename = 'sector_db\sec_m01_m01.dat'    
-    sector_name = db_name[6:len(db_name)-3]
     with open(trav_filename, 'w') as f:
-        f.write("""
+        f.write(
+"""
 
-# """ + sector_name + """\n
+
+# """ + sector_name + """
 # 0,0
 
 # Name:""" + sector_name + """\n
